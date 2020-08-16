@@ -13,29 +13,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.firebase.geofire.testing;
+package com.firebase.geofire.example.geo;
 
 import android.content.Context;
-import androidx.annotation.NonNull;
 import android.util.Log;
+
+import androidx.annotation.NonNull;
 
 import com.firebase.geofire.GeoFire;
 import com.firebase.geofire.GeoLocation;
-import com.google.android.gms.tasks.Task;
-import com.google.firebase.FirebaseApp;
-import com.google.firebase.FirebaseOptions;
-import com.google.firebase.auth.AuthResult;
-import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
-import com.google.firebase.database.Logger;
 import com.google.firebase.database.ValueEventListener;
 
-import org.junit.Assert;
-
-import java.util.Random;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -43,17 +35,13 @@ import java.util.concurrent.TimeoutException;
 /**
  * This is a JUnit rule that can be used for hooking up Geofire with a real database instance.
  */
-public final class GeoFireTestingRule {
+public final class GeoFireSetLocation { //geofire
 
     private static final String TAG = "GeoFireTestingRule";
 
-    // TODO: Get this to work with the emulators
-    //    private static final String DEFAULT_DATABASE_URL = "http://10.0.2.2:9000";
-    private static final String DEFAULT_DATABASE_URL = "https://geofiretest-8d811.firebaseio.com/";
+    private static final String DEFAULT_DATABASE_URL = "/geofire";
 
     static final long DEFAULT_TIMEOUT_SECONDS = 5;
-
-    private static final String ALPHA_NUM_CHARS = "abcdefghijklmnopqrstuvwxyz0123456789";
 
     private DatabaseReference databaseReference;
 
@@ -62,40 +50,21 @@ public final class GeoFireTestingRule {
     /** Timeout in seconds. */
     public final long timeout;
 
-    public GeoFireTestingRule() {
+    public GeoFireSetLocation() {
         this (DEFAULT_DATABASE_URL, DEFAULT_TIMEOUT_SECONDS);
     }
 
-    public GeoFireTestingRule(final String databaseUrl) {
+    public GeoFireSetLocation(final String databaseUrl) {
         this(databaseUrl, DEFAULT_TIMEOUT_SECONDS);
     }
 
-    public GeoFireTestingRule(final String databaseUrl, final long timeout) {
+    public GeoFireSetLocation(final String databaseUrl, final long timeout) {
         this.databaseUrl = databaseUrl;
         this.timeout = timeout;
     }
 
-    public void before(Context context) throws Exception {
-        if (FirebaseApp.getApps(context).isEmpty()) {
-            FirebaseOptions firebaseOptions = new FirebaseOptions.Builder()
-                    .setApplicationId("1:1010498001935:android:f17a2f247ad8e8bc")
-                    .setApiKey("AIzaSyBys-YxxE7kON5PxZc5aY6JwVvreyx_owc")
-                    .setDatabaseUrl(databaseUrl)
-                    .build();
-            FirebaseApp.initializeApp(context, firebaseOptions);
-            FirebaseDatabase.getInstance().setLogLevel(Logger.Level.DEBUG);
-        }
-
-        if (FirebaseAuth.getInstance().getCurrentUser() == null) {
-            Task<AuthResult> signInTask = TaskUtils.waitForTask(FirebaseAuth.getInstance().signInAnonymously());
-            if (signInTask.isSuccessful()) {
-                Log.d(TAG, "Signed in as " + signInTask.getResult().getUser());
-            } else {
-                throw new Exception("Failed to sign in: " + signInTask.getException());
-            }
-        }
-
-        this.databaseReference = FirebaseDatabase.getInstance().getReferenceFromUrl(databaseUrl);
+    public void before(Context context) {
+        this.databaseReference = FirebaseDatabase.getInstance().getReference(databaseUrl);
     }
 
     public void after() {
@@ -105,7 +74,7 @@ public final class GeoFireTestingRule {
 
     /** This will return you a new Geofire instance that can be used for testing. */
     public GeoFire newTestGeoFire() {
-        return new GeoFire(databaseReference.child(randomAlphaNumericString(16)));
+        return new GeoFire(databaseReference);
     }
 
     /**
@@ -134,11 +103,11 @@ public final class GeoFireTestingRule {
             }
         });
         try {
-            Assert.assertNull(futureError.get(timeout, TimeUnit.SECONDS));
+            futureError.get(timeout, TimeUnit.SECONDS);
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         } catch (TimeoutException e) {
-            Assert.fail("Timeout occured!");
+            Log.e(TAG, e.getMessage());
         }
     }
 
@@ -156,11 +125,11 @@ public final class GeoFireTestingRule {
         });
         if (wait) {
             try {
-                Assert.assertNull(futureError.get(timeout, TimeUnit.SECONDS));
+                futureError.get(timeout, TimeUnit.SECONDS);
             } catch (InterruptedException e) {
                 throw new RuntimeException(e);
             } catch (TimeoutException e) {
-                Assert.fail("Timeout occured!");
+                Log.e(TAG, e.getMessage());
             }
         }
     }
@@ -179,11 +148,11 @@ public final class GeoFireTestingRule {
         });
         if (wait) {
             try {
-                Assert.assertNull(futureError.get(timeout, TimeUnit.SECONDS));
+                futureError.get(timeout, TimeUnit.SECONDS);
             } catch (InterruptedException e) {
                 throw new RuntimeException(e);
             } catch (TimeoutException e) {
-                Assert.fail("Timeout occured!");
+                Log.e(TAG, e.getMessage());
             }
         }
     }
@@ -199,19 +168,11 @@ public final class GeoFireTestingRule {
 
             @Override
             public void onCancelled(@NonNull DatabaseError databaseError) {
-                Assert.fail("Firebase error: " + databaseError);
+                Log.e(TAG, databaseError.getMessage());
             }
         });
 
-        Assert.assertTrue("Timeout occured!", semaphore.tryAcquire(timeout, TimeUnit.SECONDS));
-    }
-
-    private static String randomAlphaNumericString(int length) {
-        StringBuilder sb = new StringBuilder();
-        Random random = new Random();
-        for (int i = 0; i < length; i++ ) {
-            sb.append(ALPHA_NUM_CHARS.charAt(random.nextInt(ALPHA_NUM_CHARS.length())));
-        }
-        return sb.toString();
+        Log.i(TAG, "Timeout occured!");
+        semaphore.tryAcquire(timeout, TimeUnit.SECONDS);
     }
 }
