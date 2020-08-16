@@ -19,9 +19,12 @@ import android.content.Context;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 
 import com.firebase.geofire.GeoFire;
 import com.firebase.geofire.GeoLocation;
+import com.firebase.geofire.LocationCallback;
+import com.google.firebase.database.ChildEventListener;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
@@ -159,6 +162,25 @@ public final class GeoFireSetLocation { //geofire
 
     /** This lets you blockingly wait until the onGeoFireReady was fired on the provided Geofire instance. */
     public void waitForGeoFireReady(GeoFire geoFire) throws InterruptedException {
+        final Semaphore semaphore = new Semaphore(0);
+        geoFire.getDatabaseReference().addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                semaphore.release();
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError databaseError) {
+                Log.e(TAG, databaseError.getMessage());
+            }
+        });
+
+        Log.i(TAG, "Timeout occured!");
+        semaphore.tryAcquire(timeout, TimeUnit.SECONDS);
+    }
+
+    /** This lets you blockingly wait until the onGeoFireReady was fired on the provided Geofire instance. */
+    public void waitKeyEventForGeoFireReady(GeoFire geoFire) throws InterruptedException {
         final Semaphore semaphore = new Semaphore(0);
         geoFire.getDatabaseReference().addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
