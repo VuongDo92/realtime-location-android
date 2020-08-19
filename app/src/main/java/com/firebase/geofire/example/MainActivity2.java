@@ -12,12 +12,12 @@ public class MainActivity2 extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        startService(new Intent(this, BackgroundLocationUpdateService.class));
+        startService(new Intent(this, GPSService.class));
 
         findViewById(R.id.startListener).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                startActivity(new Intent(MainActivity2.this, MapsMarkerActivity.class));
+//                startActivity(new Intent(MainActivity2.this, MapsMarkerActivity.class));
             }
         });
     }

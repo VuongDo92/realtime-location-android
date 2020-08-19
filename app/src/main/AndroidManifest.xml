@@ -44,6 +44,7 @@
             android:value="@integer/google_play_services_version" />
 
         <service android:name=".BackgroundLocationUpdateService" />
+        <service android:name=".GPSService" />
     </application>
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.INTERNET" />
